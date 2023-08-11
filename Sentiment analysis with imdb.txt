@@ -1,0 +1,54 @@
+Project: Sentiment Analysis with IMDb Movie Reviews
+Objective: Build a machine learning model to classify movie reviews as positive or negative based on their sentiment.
+import nltk
+from nltk.corpus import movie_reviews
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
+
+# Download NLTK resources if not already downloaded
+nltk.download('movie_reviews')
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
+# Load movie reviews dataset
+neg_reviews = [movie_reviews.raw(fileid) for fileid in movie_reviews.fileids('neg')]
+pos_reviews = [movie_reviews.raw(fileid) for fileid in movie_reviews.fileids('pos')]
+
+# Preprocessing
+lemmatizer = WordNetLemmatizer()
+stop_words = set(stopwords.words('english'))
+
+def preprocess_text(text):
+    tokens = word_tokenize(text.lower())
+    tokens = [lemmatizer.lemmatize(token) for token in tokens if token.isalnum() and token not in stop_words]
+    return ' '.join(tokens)
+
+all_reviews = neg_reviews + pos_reviews
+preprocessed_reviews = [preprocess_text(review) for review in all_reviews]
+labels = [0] * len(neg_reviews) + [1] * len(pos_reviews)
+
+# Splitting the dataset
+X_train, X_test, y_train, y_test = train_test_split(preprocessed_reviews, labels, test_size=0.2, random_state=42)
+
+# Feature extraction using TF-IDF
+tfidf_vectorizer = TfidfVectorizer(max_features=5000)
+X_train_tfidf = tfidf_vectorizer.fit_transform(X_train)
+X_test_tfidf = tfidf_vectorizer.transform(X_test)
+
+# Training a Naive Bayes classifier
+classifier = MultinomialNB()
+classifier.fit(X_train_tfidf, y_train)
+
+# Predictions
+y_pred = classifier.predict(X_test_tfidf)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.2f}")
+
